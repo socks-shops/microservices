@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/microservices-demo/microservices-demo.svg?branch=master)](https://travis-ci.org/microservices-demo/microservices-demo)
 
-Sock Shop : A Microservice Demo Application
+Sock Shop : A Microservice Demo Application.
 
 The application is the user-facing part of an online shop that sells socks. It is intended to aid the demonstration and testing of microservice and cloud native technologies.
 
@@ -10,7 +10,7 @@ You can read more about the [application design](./internal-docs/design.md).
 
 ## Deployment Platforms
 
-The [deploy folder](./deploy/) contains scripts and instructions to provision the application onto your favourite platform. 
+The [deploy folder](./deploy/) contains scripts and instructions to provision the application onto your favourite platform.
 
 Please let us know if there is a platform that you would like to see supported.
 
@@ -28,4 +28,4 @@ Use [Weave Scope](http://weave.works/products/weave-scope/) or [Weave Cloud](htt
 
 ![Sock Shop in Weave Scope](https://github.com/microservices-demo/microservices-demo.github.io/raw/master/assets/sockshop-scope.png)
 
-## 
+##
