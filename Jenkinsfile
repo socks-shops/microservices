@@ -15,6 +15,7 @@ pipeline {
                         ls
                         cat $KUBECONFIG > .kube/config
 
+                        rm -Rf helm-charts
                         git clone https://$GIT_USER:$GIT_PASS@github.com/socks-shops/helm-charts.git helm-charts
                         ls
 
