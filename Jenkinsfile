@@ -16,6 +16,7 @@ pipeline {
                         cat $KUBECONFIG > .kube/config
 
                         git clone https://$GIT_USER:$GIT_PASS@github.com/socks-shops/helm-charts.git helm-charts
+                        ls
 
                         helm dependency update helm-charts/
                         helm upgrade --install socksshop-microservices ./helm-charts/ --namespace dev
