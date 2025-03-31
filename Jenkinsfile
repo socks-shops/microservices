@@ -1,28 +1,66 @@
 pipeline {
+    environment {
+        AWS_REGION = 'eu-west-3'
+        CLUSTER_NAME = 'sockshop-EKS-VPC'
+        CHART_NAME = 'helm-charts/other-microservices/'
+        NAMESPACE = 'dev'
+        RELEASE_NAME = 'socksshop-microservices'
+    }
     agent any
 
     stages {
-        stage('Dev deployment') {
-            environment {
-                KUBECONFIG = credentials("config")
-            }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                        sh '''
-                        rm -Rf .kube
-                        mkdir .kube
-                        ls
-                        cat $KUBECONFIG > .kube/config
+        // stage('Dev deployment') {
+        //     environment {
+        //         KUBECONFIG = credentials("config")
+        //     }
+        //     steps {
+        //         script {
+        //             withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+        //                 sh '''
+        //                 rm -Rf .kube
+        //                 mkdir .kube
+        //                 ls
+        //                 cat $KUBECONFIG > .kube/config
 
-                        rm -Rf helm-charts
-                        git clone https://$GIT_USER:$GIT_PASS@github.com/socks-shops/helm-charts.git helm-charts
+        //                 rm -Rf helm-charts
+        //                 git clone https://$GIT_USER:$GIT_PASS@github.com/socks-shops/helm-charts.git helm-charts
 
-                        helm dependency update helm-charts/other-microservices/
-                        helm upgrade --install socksshop-microservices ./helm-charts/other-microservices/ --namespace dev
-                        kubectl get all -n dev
-                        sleep 15
-                        '''
+        //                 helm dependency update helm-charts/other-microservices/
+        //                 helm upgrade --install socksshop-microservices ./helm-charts/other-microservices/ --namespace dev
+        //                 kubectl get all -n dev
+        //                 sleep 15
+        //                 '''
+        //             }
+        //         }
+        //     }
+        // }
+
+        stage('AWS Deployment') {
+            parallel {
+                stage('Test AWS Connection') {
+                    steps {
+                        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                            sh 'aws sts get-caller-identity'
+                        }
+                    }
+                }
+
+                stage('Deploy to EKS') {
+                    steps {
+                        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                            sh '''
+                            aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}
+                            kubectl config current-context
+
+                            rm -Rf helm-charts
+                            git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
+
+                            helm lint ${CHART_NAME}
+                            helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE}
+
+                            kubectl get all -n ${NAMESPACE}
+                            '''
+                        }
                     }
                 }
             }
