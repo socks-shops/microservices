@@ -35,35 +35,32 @@ pipeline {
         //     }
         // }
 
-        stage('AWS Deployment') {
-            parallel {
-                stage('Test AWS Connection') {
-                    steps {
-                        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh 'aws sts get-caller-identity'
-                        }
-                    }
-                }
+        // stage('Test AWS Connection') {
+        //     steps {
+        //         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+        //             sh 'aws sts get-caller-identity'
+        //         }
+        //     }
+        // }
 
-                stage('Deploy to EKS') {
-                    steps {
-                        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh '''
-                            aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}
-                            kubectl config current-context
+        stage('Deploy to AWS EKS') {
+            agent { docker { image 'socksshop/aws-cli-git-kubectl-helm:latest' } }
+            steps {
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    sh '''
+                    aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}
+                    kubectl config current-context
 
-                            kubectl create ns ${NAMESPACE}
+                    kubectl create ns ${NAMESPACE}
 
-                            rm -Rf helm-charts
-                            git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
+                    rm -Rf helm-charts
+                    git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                            helm lint ${CHART_NAME}
-                            helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE}
+                    helm lint ${CHART_NAME}
+                    helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE}
 
-                            kubectl get all -n ${NAMESPACE}
-                            '''
-                        }
-                    }
+                    kubectl get all -n ${NAMESPACE}
+                    '''
                 }
             }
         }
