@@ -44,7 +44,12 @@ pipeline {
         // }
 
         stage('Deploy to AWS EKS') {
-            agent { docker { image 'socksshop/aws-cli-git-kubectl-helm:latest' } }
+            agent {
+                docker {
+                    image 'socksshop/aws-cli-git-kubectl-helm:latest'
+                    args '-u root -v $HOME/.kube:/root/.kube'
+                }
+            }
             steps {
                 withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
                     sh '''
