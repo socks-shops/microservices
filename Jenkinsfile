@@ -56,7 +56,7 @@ pipeline {
                     aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}
                     kubectl config current-context
 
-                    kubectl create ns ${NAMESPACE}
+                    kubectl get ns ${NAMESPACE} || kubectl create ns ${NAMESPACE}
 
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
