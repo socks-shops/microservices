@@ -1,6 +1,6 @@
 pipeline {
     environment {
-        AWS_REGION = 'eu-west-3'
+        AWS_REGION = 'us-east-1'
         CLUSTER_NAME = 'sockshop-EKS-VPC'
         CHART_NAME = 'helm-charts/other-microservices/'
         NAMESPACE = 'dev'
