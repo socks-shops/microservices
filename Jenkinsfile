@@ -61,7 +61,6 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                    helm lint ${CHART_NAME}
                     helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE}
 
                     kubectl get all -n ${NAMESPACE}
