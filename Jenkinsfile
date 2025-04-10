@@ -43,6 +43,25 @@ pipeline {
         //     }
         // }
 
+        stage('Pre-Deployment Backup') {
+            agent {
+                docker {
+                    image 'socksshop/aws-cli-velero:latest'
+                    args '-u root -v $HOME/.kube:/root/.kube'
+                }
+            }
+            steps {
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    sh '''
+                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                    chmod 600 /root/.kube/config
+
+                    velero backup create microservices-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to AWS EKS') {
             agent {
                 docker {
