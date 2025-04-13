@@ -9,58 +9,25 @@ pipeline {
     agent any
 
     stages {
-        // stage('Dev deployment') {
-        //     environment {
-        //         KUBECONFIG = credentials("config")
-        //     }
-        //     steps {
-        //         script {
-        //             withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-        //                 sh '''
-        //                 rm -Rf .kube
-        //                 mkdir .kube
-        //                 ls
-        //                 cat $KUBECONFIG > .kube/config
 
-        //                 rm -Rf helm-charts
-        //                 git clone https://$GIT_USER:$GIT_PASS@github.com/socks-shops/helm-charts.git helm-charts
-
-        //                 helm dependency update helm-charts/other-microservices/
-        //                 helm upgrade --install socksshop-microservices ./helm-charts/other-microservices/ --namespace dev
-        //                 kubectl get all -n dev
-        //                 sleep 15
-        //                 '''
-        //             }
+        // stage('Pre-Deployment Backup') {
+        //     agent {
+        //         docker {
+        //             image 'socksshop/aws-cli-velero:latest'
+        //             args '-u root -v $HOME/.kube:/root/.kube'
         //         }
         //     }
-        // }
-
-        // stage('Test AWS Connection') {
         //     steps {
         //         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-        //             sh 'aws sts get-caller-identity'
+        //             sh '''
+        //             aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+        //             chmod 600 /root/.kube/config
+
+        //             velero backup create microservices-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
+        //             '''
         //         }
         //     }
         // }
-
-        stage('Pre-Deployment Backup') {
-            agent {
-                docker {
-                    image 'socksshop/aws-cli-velero:latest'
-                    args '-u root -v $HOME/.kube:/root/.kube'
-                }
-            }
-            steps {
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                    sh '''
-                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
-                    chmod 600 /root/.kube/config
-
-                    velero backup create microservices-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
-                    '''
-                }
-            }
-        }
 
         stage('Deploy to AWS EKS') {
             agent {
@@ -88,42 +55,51 @@ pipeline {
             }
         }
 
-        // stage('Health check') {
-        //     steps {
-        //         script {
-        //             sh '''
-        //             curl -s -o /dev/null -w "%{http_code}" http://localhost:30001 | grep 200
-        //             curl http://localhost:30001 | grep "WeaveSocks"
-        //             curl -s -o /dev/null -w "%{http_code}" http://socks-shop.local | grep 200
-        //             curl http://socks-shop.local | grep "WeaveSocks"
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Post-deployment managment') {
+            agent {
+                docker {
+                    image 'socksshop/aws-cli-git-kubectl-helm:latest'
+                    args '-u root -v $HOME/.kube:/root/.kube'
+                }
+            }
+            steps {
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    script {
+                        def userChoice = input(
+                            id: 'userInput', message: 'Que souhaitez-vous faire avec le déploiement EKS des microservices?',
+                            parameters: [
+                                choice(
+                                    name: 'ACTION',
+                                    choices: ['Ne rien faire', 'Rollback', 'Destroy'],
+                                    description: 'Choisissez une action à effectuer'
+                                )
+                            ]
+                        )
 
-        // stage('Déploiement en prod') {
-        //     when {
-        //         expression { env.GIT_BRANCH ==~ /(origin\/)?main/ }
-        //     }
-        //     environment {
-        //         KUBECONFIG = credentials("config")
-        //     }
-        //     steps {
-        //         timeout(time: 15, unit: "MINUTES") {
-        //             input message: 'Do you want to deploy in production ?', ok: 'Yes'
-        //         }
-        //         script {
-        //             sh '''
-        //             rm -Rf .kube
-        //             mkdir .kube
-        //             ls
-        //             cat $KUBECONFIG > .kube/config
-        //             helm dependency update charts/
-        //             helm upgrade --install jenkins-devops ./charts/ --namespace prod
-        //             kubectl get all -n prod
-        //             '''
-        //         }
-        //     }
-        // }
+                        sh '''
+                        aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                        chmod 600 /root/.kube/config
+                        kubectl config current-context
+                        '''
+
+                        if (userChoice == 'Destroy') {
+                            echo "Destruction du déploiement..."
+                            sh '''
+                            helm uninstall $RELEASE_NAME --wait --namespace $NAMESPACE
+                            kubectl get all -n $NAMESPACE
+                            '''
+                        } else if (userChoice == 'Rollback') {
+                            echo "Rollback du déploiement..."
+                            sh '''
+                            helm rollback $RELEASE_NAME 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback"
+                            '''
+                        } else {
+                            echo "Aucune action effectuée."
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
