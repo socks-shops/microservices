@@ -10,24 +10,175 @@ pipeline {
 
     stages {
 
-        // stage('Pre-Deployment Backup') {
-        //     agent {
-        //         docker {
-        //             image 'socksshop/aws-cli-velero:latest'
-        //             args '-u root -v $HOME/.kube:/root/.kube'
-        //         }
-        //     }
-        //     steps {
-        //         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-        //             sh '''
-        //             aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
-        //             chmod 600 /root/.kube/config
+        stage('Pre-Deployment Backups') {
+            parallel {
 
-        //             velero backup create microservices-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
-        //             '''
-        //         }
-        //     }
-        // }
+                stage('Backup cluster') {
+                    agent {
+                        docker {
+                            image 'socksshop/aws-cli-velero:latest'
+                            args '-u root -v $HOME/.kube:/root/.kube'
+                        }
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                                    sh '''
+                                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                                    chmod 600 /root/.kube/config
+
+                                    velero backup create frontend-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Backup carts-db') {
+                    agent {
+                        docker {
+                            image 'socksshop/aws-cli-velero:latest'
+                            args '-u root -v $HOME/.kube:/root/.kube'
+                        }
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                                    def dbName = "carts-db"
+                                    def timestamp = new Date().format("yyyyMMdd-HHmmss")
+                                    def backupName = "${dbName}-backup-on-demand-${timestamp}"
+                                    sh """
+                                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                                    chmod 600 /root/.kube/config
+
+                                    cat <<EOF | kubectl apply -f -
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDBBackup
+metadata:
+  name: ${backupName}
+  namespace: percona-mongodb
+spec:
+  psmdbCluster: ${dbName}
+  storageName: s3-us-east
+EOF
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Backup orders-db') {
+                    agent {
+                        docker {
+                            image 'socksshop/aws-cli-velero:latest'
+                            args '-u root -v $HOME/.kube:/root/.kube'
+                        }
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                                    def dbName = "orders-db"
+                                    def timestamp = new Date().format("yyyyMMdd-HHmmss")
+                                    def backupName = "${dbName}-backup-on-demand-${timestamp}"
+                                    sh """
+                                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                                    chmod 600 /root/.kube/config
+
+                                    cat <<EOF | kubectl apply -f -
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDBBackup
+metadata:
+  name: ${backupName}
+  namespace: percona-mongodb
+spec:
+  psmdbCluster: ${dbName}
+  storageName: s3-us-east
+EOF
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Backup user-db') {
+                    agent {
+                        docker {
+                            image 'socksshop/aws-cli-velero:latest'
+                            args '-u root -v $HOME/.kube:/root/.kube'
+                        }
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                                    def dbName = "user-db"
+                                    def timestamp = new Date().format("yyyyMMdd-HHmmss")
+                                    def backupName = "${dbName}-backup-on-demand-${timestamp}"
+                                    sh """
+                                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                                    chmod 600 /root/.kube/config
+
+                                    cat <<EOF | kubectl apply -f -
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDBBackup
+metadata:
+  name: ${backupName}
+  namespace: percona-mongodb
+spec:
+  psmdbCluster: ${dbName}
+  storageName: s3-us-east
+EOF
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Backup catalogue-db') {
+                    agent {
+                        docker {
+                            image 'socksshop/aws-cli-velero:latest'
+                            args '-u root -v $HOME/.kube:/root/.kube'
+                        }
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                                    def dbName = "catalogue-db"
+                                    def timestamp = new Date().format("yyyyMMdd-HHmmss")
+                                    def backupName = "${dbName}-backup-on-demand-${timestamp}"
+
+                                    sh """
+                                    aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+                                    chmod 600 /root/.kube/config
+
+                                    cat <<EOF | kubectl apply -f -
+apiVersion: pxc.percona.com/v1
+kind: PerconaXtraDBClusterBackup
+metadata:
+  name: ${backupName}
+  namespace: percona-mysql
+spec:
+  pxcCluster: ${dbName}
+  storageName: s3-us-east
+EOF
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
 
         stage('Deploy to AWS EKS') {
             agent {
@@ -70,7 +221,7 @@ pipeline {
                             parameters: [
                                 choice(
                                     name: 'ACTION',
-                                    choices: ['Ne rien faire', 'Rollback', 'Destroy'],
+                                    choices: ['Continuer', 'Rollback', 'Destroy'],
                                     description: 'Choisissez une action à effectuer'
                                 )
                             ]
