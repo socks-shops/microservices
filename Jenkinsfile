@@ -28,7 +28,7 @@ pipeline {
                                     aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
                                     chmod 600 /root/.kube/config
 
-                                    velero backup create frontend-pre-deploy-backup${BUILD_NUMBER} --include-namespaces=dev
+                                    velero backup create microservices-pre-deploy-backup-${BUILD_NUMBER} --include-namespaces=dev
                                     '''
                                 }
                             }
