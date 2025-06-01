@@ -58,6 +58,8 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
+                    helm repo add percona https://percona.github.io/percona-helm-charts/
+                    helm repo update
                     helm upgrade --install carts-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-cart-db-values.yaml
                     helm upgrade --install orders-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-orders-db-values.yaml
                     helm upgrade --install user-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-user-db-values.yaml
