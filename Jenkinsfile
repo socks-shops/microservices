@@ -2,7 +2,8 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         CLUSTER_NAME = 'sockshop-EKS'
-        CHART_NAME = 'helm-charts/other-microservices/'
+        MONGODB_OPERATOR_CHART_NAME = 'helm-charts/operators/mongodb/'
+        MICROSERVICES_CHART_NAME = 'helm-charts/other-microservices/'
         NAMESPACE = 'dev'
         RELEASE_NAME = 'socksshop-microservices'
     }
@@ -39,7 +40,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to AWS EKS') {
+        stage('Dev Deployment - AWS EKS') {
             agent {
                 docker {
                     image 'socksshop/aws-cli-git-kubectl-helm:latest'
@@ -57,7 +58,13 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                    helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE}
+                    helm upgrade --install carts-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-cart-db-values.yaml
+                    helm upgrade --install orders-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-orders-db-values.yaml
+                    helm upgrade --install user-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-user-db-values.yaml
+
+                    helm upgrade --install restore-user-db ${MONGODB_OPERATOR_CHART_NAME}user-db-restore -n ${NAMESPACE}
+
+                    helm upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
 
                     kubectl get all -n ${NAMESPACE}
                     '''
