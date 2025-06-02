@@ -104,13 +104,22 @@ pipeline {
                         if (userChoice == 'Destroy') {
                             echo "Destruction du déploiement..."
                             sh '''
-                            helm uninstall $RELEASE_NAME --wait --namespace $NAMESPACE
+                            helm uninstall $RELEASE_NAME --namespace $NAMESPACE --wait
+                            helm uninstall restore-user-db -n $NAMESPACE --wait
+                            helm uninstall carts-db -n $NAMESPACE --wait
+                            helm uninstall orders-db -n $NAMESPACE --wait
+                            helm uninstall user-db -n $NAMESPACE --wait
                             kubectl get all -n $NAMESPACE
                             '''
                         } else if (userChoice == 'Rollback') {
                             echo "Rollback du déploiement..."
                             sh '''
-                            helm rollback $RELEASE_NAME 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback"
+                            helm rollback $RELEASE_NAME 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de ${RELEASE_NAME}"
+                            helm rollback restore-user-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de restore-user-db"
+                            helm rollback carts-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de carts-db"
+                            helm rollback orders-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de orders-db"
+                            helm rollback user-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de user-db"
+                            kubectl get all -n $NAMESPACE
                             '''
                         } else {
                             echo "Aucune action effectuée."
