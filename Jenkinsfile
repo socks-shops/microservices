@@ -11,6 +11,27 @@ pipeline {
 
     stages {
 
+
+        stage('Define Namespace') {
+            steps {
+                script {
+                    def currentBranch = env.BRANCH_NAME // Jenkins variable
+
+                    if (currentBranch == 'main') {
+                        env.NAMESPACE = 'dev'
+                    } else if (currentBranch == 'staging') {
+                        env.NAMESPACE = 'staging'
+                    } else if (currentBranch == 'prod') {
+                        env.NAMESPACE = 'prod'
+                    } else {
+                        error "Branche '${currentBranch}' non gérée pour la définition du namespace."
+                    }
+
+                    echo "Le namespace défini pour cette exécution est : ${env.NAMESPACE}"
+                }
+            }
+        }
+
         stage('Pre-Deployment Backups') {
             parallel {
 
@@ -29,7 +50,7 @@ pipeline {
                                     aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
                                     chmod 600 /root/.kube/config
 
-                                    velero backup create microservices-pre-deploy-backup-${BUILD_NUMBER} --include-namespaces=dev
+                                    velero backup create microservices-pre-deploy-backup-${NAMESPACE}-${BUILD_NUMBER} --include-namespaces=${NAMESPACE}
                                     '''
                                 }
                             }
@@ -40,7 +61,19 @@ pipeline {
             }
         }
 
-        stage('Dev Deployment - AWS EKS') {
+        stage('${NAMESPACE} : Confirm deployment') {
+            when {
+                environment name: 'NAMESPACE', value: 'prod'
+            }
+            steps {
+                script {
+                    input message: "Continuer le déploiement en ${env.NAMESPACE} ? Cliquez sur 'Proceed' pour confirmer.",
+                        ok: 'Proceed'
+                }
+            }
+        }
+
+        stage('${NAMESPACE} : Microservices Deployment - AWS EKS') {
             agent {
                 docker {
                     image 'socksshop/aws-cli-git-kubectl-helm:latest'
@@ -55,17 +88,14 @@ pipeline {
 
                     kubectl get ns ${NAMESPACE} || kubectl create ns ${NAMESPACE}
 
-                    rm -Rf helm-charts
-                    git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
-
                     helm repo add percona https://percona.github.io/percona-helm-charts/
                     helm repo update
-                    helm upgrade --install carts-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-cart-db-values.yaml
-                    helm upgrade --install orders-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-orders-db-values.yaml
-                    helm upgrade --install user-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}dev-user-db-values.yaml
+                    helm upgrade --install carts-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-cart-db-values.yaml
+                    helm upgrade --install orders-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-orders-db-values.yaml
+                    helm upgrade --install user-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-user-db-values.yaml
 
-                    helm upgrade --install restore-user-db ${MONGODB_OPERATOR_CHART_NAME}user-db-restore -n ${NAMESPACE}
-
+                    rm -Rf helm-charts
+                    git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
                     helm upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
 
                     kubectl get all -n ${NAMESPACE}
@@ -105,7 +135,6 @@ pipeline {
                             echo "Destruction du déploiement..."
                             sh '''
                             helm uninstall $RELEASE_NAME --namespace $NAMESPACE --wait
-                            helm uninstall restore-user-db -n $NAMESPACE --wait
                             helm uninstall carts-db -n $NAMESPACE --wait
                             helm uninstall orders-db -n $NAMESPACE --wait
                             helm uninstall user-db -n $NAMESPACE --wait
@@ -115,7 +144,6 @@ pipeline {
                             echo "Rollback du déploiement..."
                             sh '''
                             helm rollback $RELEASE_NAME 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de ${RELEASE_NAME}"
-                            helm rollback restore-user-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de restore-user-db"
                             helm rollback carts-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de carts-db"
                             helm rollback orders-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de orders-db"
                             helm rollback user-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de user-db"
