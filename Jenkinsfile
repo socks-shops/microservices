@@ -15,6 +15,10 @@ pipeline {
         stage('Define Namespace') {
             steps {
                 script {
+                    sh'''
+                    printenv
+                    '''
+                    def currentBranch = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
                     def currentBranch = env.BRANCH_NAME // Jenkins variable
 
                     if (currentBranch == 'main') {
