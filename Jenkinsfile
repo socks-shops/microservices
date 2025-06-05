@@ -15,7 +15,7 @@ pipeline {
         stage('Define Namespace') {
             steps {
                 script {
-                    def currentBranch = env.GIT_BRANCH
+                    def currentBranch = env.GIT_BRANCH // Jenkins variable
 
                     if (currentBranch == 'origin/main') {
                         env.NAMESPACE = 'dev'
