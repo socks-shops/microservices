@@ -86,14 +86,6 @@ pipeline {
                     aws eks --region ${AWS_REGION} update-kubeconfig --name ${CLUSTER_NAME}
                     kubectl config current-context
 
-                    kubectl get ns ${NAMESPACE} || kubectl create ns ${NAMESPACE}
-
-                    helm repo add percona https://percona.github.io/percona-helm-charts/
-                    helm repo update
-                    helm upgrade --install carts-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-cart-db-values.yaml
-                    helm upgrade --install orders-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-orders-db-values.yaml
-                    helm upgrade --install user-db percona/psmdb-db -n ${NAMESPACE} -f ${MONGODB_OPERATOR_CHART_NAME}${NAMESPACE}-user-db-values.yaml
-
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
                     helm upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
@@ -135,18 +127,12 @@ pipeline {
                             echo "Destruction du déploiement..."
                             sh '''
                             helm uninstall $RELEASE_NAME --namespace $NAMESPACE --wait
-                            helm uninstall carts-db -n $NAMESPACE --wait
-                            helm uninstall orders-db -n $NAMESPACE --wait
-                            helm uninstall user-db -n $NAMESPACE --wait
                             kubectl get all -n $NAMESPACE
                             '''
                         } else if (userChoice == 'Rollback') {
                             echo "Rollback du déploiement..."
                             sh '''
                             helm rollback $RELEASE_NAME 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de ${RELEASE_NAME}"
-                            helm rollback carts-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de carts-db"
-                            helm rollback orders-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de orders-db"
-                            helm rollback user-db 0 --wait --namespace $NAMESPACE || echo "Aucune révision précédente disponible pour rollback de user-db"
                             kubectl get all -n $NAMESPACE
                             '''
                         } else {
