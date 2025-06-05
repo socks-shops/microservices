@@ -61,19 +61,19 @@ pipeline {
             }
         }
 
-        stage('${NAMESPACE} : Confirm deployment') {
+        stage('Confirm Microservices deployment - AWS EKS - Production') {
             when {
                 environment name: 'NAMESPACE', value: 'prod'
             }
             steps {
                 script {
-                    input message: "Continuer le déploiement en ${env.NAMESPACE} ? Cliquez sur 'Proceed' pour confirmer.",
+                    input message: "Vous vous apprêtez à déployer dans l’environnement de ${env.NAMESPACE}, voulez-vous continuer ? Cliquez sur 'Proceed' pour confirmer.",
                         ok: 'Proceed'
                 }
             }
         }
 
-        stage('${NAMESPACE} : Microservices Deployment - AWS EKS') {
+        stage('Microservices Deployment - AWS EKS') {
             agent {
                 docker {
                     image 'socksshop/aws-cli-git-kubectl-helm:latest'
