@@ -15,18 +15,13 @@ pipeline {
         stage('Define Namespace') {
             steps {
                 script {
-                    sh'''
-                    printenv
-                    '''
-                    def currentBranch = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
-                    echo "Branche détectée : ${currentBranch}"
-                    // def currentBranch = env.BRANCH_NAME // Jenkins variable
+                    def currentBranch = env.GIT_BRANCH
 
-                    if (currentBranch == 'main') {
+                    if (currentBranch == 'origin/main') {
                         env.NAMESPACE = 'dev'
-                    } else if (currentBranch == 'staging') {
+                    } else if (currentBranch == 'origin/staging') {
                         env.NAMESPACE = 'staging'
-                    } else if (currentBranch == 'prod') {
+                    } else if (currentBranch == 'origin/prod') {
                         env.NAMESPACE = 'prod'
                     } else {
                         error "Branche '${currentBranch}' non gérée pour la définition du namespace."
