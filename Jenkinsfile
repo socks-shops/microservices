@@ -92,7 +92,7 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                    helm upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
+                    helm secrets upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
 
                     kubectl get all -n ${NAMESPACE}
                     '''
