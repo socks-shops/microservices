@@ -92,48 +92,7 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                    # --- DÉBUT DES ÉTAPES DE DIAGNOSTIC ---
-
-                    echo "--- Diagnostic de l'environnement ---"
-
-                    # 3. Vérifier que SOPS_AGE_KEY est bien présente (mais pas sa valeur pour la sécurité)
-                    if [ -n "$SOPS_AGE_KEY" ]; then
-                        echo "SOPS_AGE_KEY est définie."
-                    else
-                        echo "ERREUR: SOPS_AGE_KEY n'est PAS définie ou est vide !!"
-                        exit 1 # Arrêter si la clé n'est pas là
-                    fi
-
-                    # 4. Vérifier la présence et l'exécutabilité des outils
-                    echo "Vérification des binaires sops, age, age-keygen..."
-                    which sops || echo "ERREUR: sops non trouvé dans le PATH!"
-                    which age || echo "ERREUR: age non trouvé dans le PATH!"
-                    which age-keygen || echo "ERREUR: age-keygen non trouvé dans le PATH!"
-
-                    # 5. Vérifier l'installation du plugin helm-secrets
-                    echo "Vérification du plugin helm-secrets..."
-                    helm plugin list || echo "ERREUR: helm plugin list a échoué. Le plugin helm-secrets n'est peut-être pas installé ou détecté."
-                    helm secrets --help > /dev/null 2>&1 || echo "ERREUR: La commande 'helm secrets' n'est pas reconnue!"
-
-                    # 6. Tenter de déchiffrer le secret manuellement (TRÈS IMPORTANT !)
-                    echo "Tentative de déchiffrement manuel du secret avec sops..."
-                    # Le chemin de votre secret dans le dépôt cloné
-                    ENCRYPTED_SECRET_FILE="${MICROSERVICES_CHART_NAME}templates/catalogue-db-secret.yaml.sops.yaml"
-
-                    # Utilisation d'un temporaire pour ne pas exposer le secret en clair dans les logs
-                    if sops --decrypt "$ENCRYPTED_SECRET_FILE" > /tmp/decrypted_secret.yaml; then
-                        echo "Déchiffrement manuel réussi !"
-                        cat /tmp/decrypted_secret.yaml # Affiche le contenu déchiffré (peut être sensible, attention aux logs)
-                        rm /tmp/decrypted_secret.yaml # Nettoyer le fichier temporaire
-                    else
-                        echo "ERREUR: Le déchiffrement manuel de $ENCRYPTED_SECRET_FILE a ÉCHOUÉ !"
-                        echo "Vérifiez : 1. La clé privée SOPS_AGE_KEY. 2. Si le secret est bien chiffré avec cette clé."
-                        exit 1 # Arrêter si le déchiffrement manuel échoue
-                    fi
-
-                    echo "--- Fin du Diagnostic ---"
-
-                    helm secrets upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
+                    helm secrets upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE} -f ${MICROSERVICES_CHART_NAME}/secrets.yaml.sops.yaml
 
                     kubectl get all -n ${NAMESPACE}
                     '''
