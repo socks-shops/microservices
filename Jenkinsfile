@@ -76,9 +76,12 @@ pipeline {
         stage('Microservices Deployment - AWS EKS') {
             agent {
                 docker {
-                    image 'socksshop/aws-cli-git-kubectl-helm:latest'
+                    image 'socksshop/aws-cli-git-kubectl-helm-helm-secrets-age-sops:latest'
                     args '-u root -v $HOME/.kube:/root/.kube'
                 }
+            }
+            environment {
+                SOPS_AGE_KEY = credentials('AGE-SECRET-KEY')
             }
             steps {
                 withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
@@ -88,6 +91,7 @@ pipeline {
 
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
+
                     helm upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE}
 
                     kubectl get all -n ${NAMESPACE}
