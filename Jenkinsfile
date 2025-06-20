@@ -1,7 +1,7 @@
 pipeline {
     environment {
         AWS_REGION = 'us-east-1'
-        CLUSTER_NAME = 'sockshop-EKS'
+        CLUSTER_NAME = 'sockshop-eks'
         MONGODB_OPERATOR_CHART_NAME = 'helm-charts/operators/mongodb/'
         MICROSERVICES_CHART_NAME = 'helm-charts/other-microservices/'
         NAMESPACE = 'dev'
