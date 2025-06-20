@@ -92,7 +92,7 @@ pipeline {
                     rm -Rf helm-charts
                     git clone https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/socks-shops/helm-charts.git helm-charts
 
-                    helm secrets upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE} -f ${MICROSERVICES_CHART_NAME}/values-${NAMESPACE}.yaml -f ${MICROSERVICES_CHART_NAME}/secrets.yaml.sops.yaml
+                    helm secrets upgrade --install ${RELEASE_NAME} ${MICROSERVICES_CHART_NAME} -n ${NAMESPACE} -f ${MICROSERVICES_CHART_NAME}values-${NAMESPACE}.yaml -f ${MICROSERVICES_CHART_NAME}secrets.yaml.sops.yaml
 
                     kubectl get all -n ${NAMESPACE}
                     '''
