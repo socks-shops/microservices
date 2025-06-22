@@ -4,7 +4,7 @@ pipeline {
         CLUSTER_NAME = 'sockshop-eks'
         MONGODB_OPERATOR_CHART_NAME = 'helm-charts/operators/mongodb/'
         MICROSERVICES_CHART_NAME = 'helm-charts/other-microservices/'
-        NAMESPACE = 'dev'
+        NAMESPACE = ''
         RELEASE_NAME = 'socksshop-microservices'
     }
     agent any
@@ -16,6 +16,8 @@ pipeline {
             steps {
                 script {
                     def currentBranch = env.GIT_BRANCH // Jenkins variable
+
+                    echo "${currentBranch}"
 
                     if (currentBranch == 'origin/main') {
                         env.NAMESPACE = 'dev'
