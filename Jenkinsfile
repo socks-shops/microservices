@@ -17,10 +17,12 @@ pipeline {
                 script {
                     checkout scm
 
-                    def currentBranch = scm.branches[0].name
+                    def currentBranch = env.BRANCH_NAME ?: scm.branches[0].name
                     def namespace = ''
 
                     echo "${currentBranch}"
+
+                    echo "${env.BRANCH_NAME}"
 
                     if (currentBranch == '*/main') {
                         namespace = 'dev'
