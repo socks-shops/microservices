@@ -22,7 +22,11 @@ pipeline {
 
                     echo "${currentBranch}"
 
-                    echo "${env.BRANCH_NAME}"
+                    echo "scm.branches[0].name = ${scm.branches[0].name}"
+
+                    echo "BRANCH_NAME = ${env.BRANCH_NAME}"
+
+                    echo "GIT_BRANCH = ${env.GIT_BRANCH}"
 
                     if (currentBranch == '*/main') {
                         namespace = 'dev'
