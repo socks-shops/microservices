@@ -4,7 +4,7 @@ pipeline {
         CLUSTER_NAME = 'sockshop-eks'
         MONGODB_OPERATOR_CHART_NAME = 'helm-charts/operators/mongodb/'
         MICROSERVICES_CHART_NAME = 'helm-charts/other-microservices/'
-        NAMESPACE = ''
+        // NAMESPACE = ''
         RELEASE_NAME = 'socksshop-microservices'
     }
     agent any
@@ -32,6 +32,7 @@ pipeline {
                         error "Branche '${currentBranch}' non gérée pour la définition du namespace."
                     }
 
+                    echo "${namespace}"
                     env.NAMESPACE = namespace
                     echo "Le namespace défini pour cette exécution est : ${env.NAMESPACE}"
                 }
