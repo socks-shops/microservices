@@ -18,19 +18,21 @@ pipeline {
                     checkout scm
 
                     def currentBranch = scm.branches[0].name
+                    def namespace = ''
 
                     echo "${currentBranch}"
 
                     if (currentBranch == '*/main') {
-                        env.NAMESPACE = 'dev'
+                        namespace = 'dev'
                     } else if (currentBranch == '*/staging') {
-                        env.NAMESPACE = 'staging'
+                        namespace = 'staging'
                     } else if (currentBranch == '*/prod') {
-                        env.NAMESPACE = 'prod'
+                        namespace = 'prod'
                     } else {
                         error "Branche '${currentBranch}' non gérée pour la définition du namespace."
                     }
 
+                    env.NAMESPACE = namespace
                     echo "Le namespace défini pour cette exécution est : ${env.NAMESPACE}"
                 }
             }
