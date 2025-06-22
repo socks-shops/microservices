@@ -15,15 +15,17 @@ pipeline {
         stage('Define Namespace') {
             steps {
                 script {
-                    def currentBranch = env.GIT_BRANCH // Jenkins variable
+                    checkout scm
+
+                    def currentBranch = scm.branches[0].name
 
                     echo "${currentBranch}"
 
-                    if (currentBranch == 'origin/main') {
+                    if (currentBranch == '*/main') {
                         env.NAMESPACE = 'dev'
-                    } else if (currentBranch == 'origin/staging') {
+                    } else if (currentBranch == '*/staging') {
                         env.NAMESPACE = 'staging'
-                    } else if (currentBranch == 'origin/prod') {
+                    } else if (currentBranch == '*/prod') {
                         env.NAMESPACE = 'prod'
                     } else {
                         error "Branche '${currentBranch}' non gérée pour la définition du namespace."
