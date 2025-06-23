@@ -4,7 +4,6 @@ pipeline {
         CLUSTER_NAME = 'sockshop-eks'
         MONGODB_OPERATOR_CHART_NAME = 'helm-charts/operators/mongodb/'
         MICROSERVICES_CHART_NAME = 'helm-charts/other-microservices/'
-        // NAMESPACE = ''
         RELEASE_NAME = 'socksshop-microservices'
     }
     agent any
@@ -17,22 +16,21 @@ pipeline {
                 script {
                     checkout scm
 
-                    def currentBranch = scm.branches[0].name
+                    def currentBranch = env.GIT_BRANCH
                     def namespace = ''
 
-                    echo "${currentBranch}"
+                    echo "GIT_BRANCH / currentBranch = ${env.GIT_BRANCH}"
 
-                    if (currentBranch == '*/main') {
+                    if (currentBranch == 'origin/main') {
                         namespace = 'dev'
-                    } else if (currentBranch == '*/staging') {
+                    } else if (currentBranch == 'origin/staging') {
                         namespace = 'staging'
-                    } else if (currentBranch == '*/prod') {
+                    } else if (currentBranch == 'origin/prod') {
                         namespace = 'prod'
                     } else {
                         error "Branche '${currentBranch}' non gérée pour la définition du namespace."
                     }
 
-                    echo "${namespace}"
                     env.NAMESPACE = namespace
                     echo "Le namespace défini pour cette exécution est : ${env.NAMESPACE}"
                 }
